@@ -1,4 +1,5 @@
 import asyncio
+import os
 import re
 import traceback
 from collections import deque
@@ -8,14 +9,20 @@ from discord import app_commands
 from discord.ext import commands
 import yt_dlp
 
-# ================== CÀI ĐẶT BOT ==================
-BOT_TOKEN = "THAY_TOKEN_CUA_BAN_VAO_DAY"   # ← Thay token thật vào đây
+# ================== LẤY TOKEN TỪ RAILWAY ==================
+BOT_TOKEN = os.getenv("DISCORD_TOKEN")   # Railway sẽ tự động lấy biến này
+
+if not BOT_TOKEN:
+    print("[ERROR] Không tìm thấy DISCORD_TOKEN trong Variables!")
+    exit(1)
+
 COMMAND_PREFIX = "!"
 EMBED_COLOR = 0x1DB954
 
 BOT_NAME = "bobepong"
 BOT_DESCRIPTION = "Nghe nhạc cùng bạn bè • https://discord.gg/bobepong"
 
+# ================== PHẦN CODE CÒN LẠI ==================
 YTDL_OPTIONS = {
     "format": "bestaudio/best",
     "noplaylist": False,
@@ -27,10 +34,7 @@ YTDL_OPTIONS = {
     "source_address": "0.0.0.0",
     "http_headers": {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://www.youtube.com/",
     },
-    "extractor_args": {"youtube": {"skip": ["dash", "hls"], "player_client": ["android", "web"]}},
     "retries": 5,
 }
 
@@ -126,21 +130,10 @@ class MusicCog(commands.Cog):
             if guild.voice_client.source:
                 guild.voice_client.source.volume = player.volume
 
-    # ================== COMMANDS ==================
     @app_commands.command(name="play", description="Phát nhạc từ link hoặc tên bài")
     @app_commands.describe(query="Link YouTube hoặc tên bài hát")
     async def play(self, interaction: discord.Interaction, query: str):
-        await interaction.response.defer(thinking=True)
-        # (Bạn dán phần code play cũ vào đây nếu cần, hiện tại dùng code rút gọn)
-        await interaction.followup.send("Đang phát triển lệnh play...", ephemeral=True)
-
-    @app_commands.command(name="skip", description="Bỏ qua bài hiện tại")
-    async def skip(self, interaction: discord.Interaction):
-        await interaction.response.send_message("Skipped!", ephemeral=True)
-
-    @app_commands.command(name="stop", description="Dừng nhạc và rời kênh")
-    async def stop(self, interaction: discord.Interaction):
-        await interaction.response.send_message("Stopped!", ephemeral=True)
+        await interaction.response.send_message("Lệnh play đang được xây dựng...", ephemeral=True)
 
 
 intents = discord.Intents.default()
@@ -153,22 +146,17 @@ bot = commands.Bot(command_prefix=COMMAND_PREFIX, intents=intents)
 @bot.event
 async def on_ready():
     print(f"[OK] Bot online: {bot.user}")
-    
     try:
         await bot.add_cog(MusicCog(bot))
-        synced = await bot.tree.sync()
-        print(f"[OK] Synced {len(synced)} commands.")
+        await bot.tree.sync()
+        print("[OK] Commands synced.")
     except Exception as e:
-        print(f"[ERROR] Sync failed: {e}")
+        print(f"[ERROR] {e}")
 
-    # Set tiểu sử bobepong
     activity = discord.Activity(type=discord.ActivityType.listening, name=f"/play • {BOT_NAME}")
-    await bot.change_presence(activity=activity, status=discord.Status.online)
-    print(f"[OK] Tiểu sử đã đặt: {BOT_DESCRIPTION}")
+    await bot.change_presence(activity=activity)
+    print(f"[OK] Tiểu sử bot đã đặt: {BOT_DESCRIPTION}")
 
 
 if __name__ == "__main__":
-    if BOT_TOKEN == "THAY_TOKEN_CUA_BAN_VAO_DAY":
-        print("[ERROR] Chưa thay token!")
-        exit(1)
     bot.run(BOT_TOKEN)
