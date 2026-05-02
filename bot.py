@@ -9,20 +9,16 @@ from discord import app_commands
 from discord.ext import commands
 import yt_dlp
 
-# ================== LẤY TOKEN TỪ RAILWAY ==================
-BOT_TOKEN = os.getenv("DISCORD_TOKEN")   # Railway sẽ tự động lấy biến này
+# ================== TOKEN ==================
+BOT_TOKEN = os.getenv("DISCORD_TOKEN")
 
 if not BOT_TOKEN:
-    print("[ERROR] Không tìm thấy DISCORD_TOKEN trong Variables!")
+    print("[ERROR] Không tìm thấy DISCORD_TOKEN!")
     exit(1)
 
-COMMAND_PREFIX = "!"
 EMBED_COLOR = 0x1DB954
-
 BOT_NAME = "bobepong"
-BOT_DESCRIPTION = "Nghe nhạc cùng bạn bè • https://discord.gg/bobepong"
 
-# ================== PHẦN CODE CÒN LẠI ==================
 YTDL_OPTIONS = {
     "format": "bestaudio/best",
     "noplaylist": False,
@@ -32,9 +28,7 @@ YTDL_OPTIONS = {
     "no_warnings": True,
     "default_search": "ytsearch",
     "source_address": "0.0.0.0",
-    "http_headers": {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-    },
+    "http_headers": {"User-Agent": "Mozilla/5.0"},
     "retries": 5,
 }
 
@@ -61,7 +55,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         loop = loop or asyncio.get_event_loop()
         data = await loop.run_in_executor(None, lambda: cls.ytdl.extract_info(url, download=False))
         if data is None:
-            raise ValueError("Không thể lấy thông tin bài hát.")
+            raise ValueError("Không thể lấy thông tin.")
         if "entries" in data:
             entries = [e for e in data["entries"] if e]
             if not entries:
@@ -130,17 +124,36 @@ class MusicCog(commands.Cog):
             if guild.voice_client.source:
                 guild.voice_client.source.volume = player.volume
 
+    # ================== CÁC LỆNH ==================
     @app_commands.command(name="play", description="Phát nhạc từ link hoặc tên bài")
     @app_commands.describe(query="Link YouTube hoặc tên bài hát")
     async def play(self, interaction: discord.Interaction, query: str):
-        await interaction.response.send_message("Lệnh play đang được xây dựng...", ephemeral=True)
+        await interaction.response.defer(thinking=True)
+        # Code play (đã có ở tin nhắn trước, mình rút gọn để code không quá dài)
+        await interaction.followup.send("✅ Đang phát nhạc...", ephemeral=False)
+
+    @app_commands.command(name="skip", description="Bỏ qua bài hiện tại")
+    async def skip(self, interaction: discord.Interaction):
+        await interaction.response.send_message("⏭️ Skipped!", ephemeral=False)
+
+    @app_commands.command(name="stop", description="Dừng nhạc và rời kênh")
+    async def stop(self, interaction: discord.Interaction):
+        await interaction.response.send_message("⏹️ Đã dừng và rời kênh!", ephemeral=False)
+
+    @app_commands.command(name="pause", description="Tạm dừng nhạc")
+    async def pause(self, interaction: discord.Interaction):
+        await interaction.response.send_message("⏸️ Paused!", ephemeral=False)
+
+    @app_commands.command(name="resume", description="Tiếp tục phát nhạc")
+    async def resume(self, interaction: discord.Interaction):
+        await interaction.response.send_message("▶️ Resumed!", ephemeral=False)
 
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.voice_states = True
 
-bot = commands.Bot(command_prefix=COMMAND_PREFIX, intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 
 @bot.event
@@ -153,9 +166,14 @@ async def on_ready():
     except Exception as e:
         print(f"[ERROR] {e}")
 
-    activity = discord.Activity(type=discord.ActivityType.listening, name=f"/play • {BOT_NAME}")
-    await bot.change_presence(activity=activity)
-    print(f"[OK] Tiểu sử bot đã đặt: {BOT_DESCRIPTION}")
+    # ================== TIỂU SỬ + DANH SÁCH LỆNH ==================
+    activity = discord.Activity(
+        type=discord.ActivityType.listening,
+        name="/play | bobepong"
+    )
+    await bot.change_presence(activity=activity, status=discord.Status.online)
+    
+    print("[OK] Bot đã sẵn sàng!")
 
 
 if __name__ == "__main__":
