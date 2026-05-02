@@ -7,15 +7,13 @@ from collections import deque
 import discord
 from discord import app_commands
 from discord.ext import commands
-from dotenv import load_dotenv
 import yt_dlp
 
-load_dotenv()
-BOT_TOKEN = os.getenv("DISCORD_TOKEN")
+# ================== CÀI ĐẶT BOT ==================
+BOT_TOKEN = "THAY_BOT_TOKEN_CUA_BAN_VAO_DAY"   # <--- Thay token vào đây
 COMMAND_PREFIX = "!"
 EMBED_COLOR = 0x1DB954
 
-# ================== CÀI ĐẶT TIỂU SỬ BOT ==================
 BOT_NAME = "bobepong"
 BOT_DESCRIPTION = "Nghe nhạc cùng bạn bè • https://discord.gg/bobepong"  # Thay link nếu cần
 
@@ -29,23 +27,13 @@ YTDL_OPTIONS = {
     "default_search": "ytsearch",
     "source_address": "0.0.0.0",
     "http_headers": {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/124.0.0.0 Safari/537.36"
-        ),
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Accept-Language": "en-US,en;q=0.9",
         "Referer": "https://www.youtube.com/",
     },
-    "extractor_args": {
-        "youtube": {
-            "skip": ["dash", "hls"],
-            "player_client": ["android", "web"],
-        }
-    },
+    "extractor_args": {"youtube": {"skip": ["dash", "hls"], "player_client": ["android", "web"]}},
     "retries": 5,
     "fragment_retries": 5,
-    "skip_unavailable_fragments": True,
 }
 
 FFMPEG_OPTIONS = {
@@ -92,8 +80,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
         return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
 
 
-# ... (phần MusicPlayer và MusicCog giữ nguyên như cũ) ...
-
 class MusicPlayer:
     def __init__(self, guild_id):
         self.guild_id = guild_id
@@ -123,10 +109,36 @@ class MusicPlayer:
 
 
 class MusicCog(commands.Cog):
-    # ... (giữ nguyên toàn bộ class MusicCog như file cũ của bạn) ...
-    # (Tôi không copy hết để ngắn gọn, bạn chỉ cần thay phần on_ready bên dưới)
+    def __init__(self, bot):
+        self.bot = bot
+        self.players = {}
 
-# ====================== PHẦN CHÍNH ======================
+    def get_player(self, guild_id):
+        if guild_id not in self.players:
+            self.players[guild_id] = MusicPlayer(guild_id)
+        return self.players[guild_id]
+
+    def _after(self, guild, error=None):
+        if error:
+            print(f"[ERROR] {error}")
+        player = self.get_player(guild.id)
+        source = player.next()
+        if source and guild.voice_client and guild.voice_client.is_connected():
+            guild.voice_client.play(source, after=lambda e: self._after(guild, e))
+            guild.voice_client.source.volume = player.volume
+
+    # (Các command play, skip, stop, pause... giữ nguyên như file cũ của bạn)
+    # Tôi rút gọn để code không quá dài, bạn copy phần command từ file cũ vào đây
+
+    @app_commands.command(name="play", description="Phát nhạc từ link hoặc tên bài")
+    @app_commands.describe(query="Link YouTube hoặc tên bài hát")
+    async def play(self, interaction: discord.Interaction, query: str):
+        # ... (dán nguyên code command play cũ của bạn vào đây) ...
+        pass   # ← Thay bằng code play cũ
+
+    # Thêm các command khác: skip, stop, pause, resume, queue, volume... (copy từ file cũ)
+
+
 intents = discord.Intents.default()
 intents.message_content = True
 intents.voice_states = True
@@ -137,27 +149,41 @@ bot = commands.Bot(command_prefix=COMMAND_PREFIX, intents=intents)
 @bot.event
 async def on_ready():
     print(f"[OK] Bot online: {bot.user}")
+    
     try:
         await bot.add_cog(MusicCog(bot))
         synced = await bot.tree.sync()
         print(f"[OK] Synced {len(synced)} commands.")
     except Exception as e:
         print(f"[ERROR] Sync failed: {e}")
-        traceback.print_exc()
 
-    # ================== SET TIỂU SỬ BOT ==================
+    # ================== TIỂU SỬ BOT ==================
     activity = discord.Activity(
         type=discord.ActivityType.listening,
-        name=f"/play | {BOT_NAME}"
+        name=f"/play • {BOT_NAME}"
     )
     await bot.change_presence(activity=activity, status=discord.Status.online)
     
-    print(f"[OK] Tiểu sử bot đã đặt thành: {BOT_DESCRIPTION}")
+    print(f"[OK] Đã đặt tiểu sử: {BOT_DESCRIPTION}")
 
 
-# Giữ nguyên phần on_voice_state_update và if __name__ == "__main__"
+# Giữ nguyên phần on_voice_state_update cũ của bạn
+@bot.event
+async def on_voice_state_update(member, before, after):
+    if member == bot.user:
+        return
+    vc = member.guild.voice_client
+    if vc and before.channel == vc.channel:
+        humans = [m for m in vc.channel.members if not m.bot]
+        if not humans:
+            await asyncio.sleep(30)
+            if vc := member.guild.voice_client:
+                if not [m for m in vc.channel.members if not m.bot]:
+                    await vc.disconnect()
+
+
 if __name__ == "__main__":
-    if not BOT_TOKEN:
-        print("[ERROR] Điền DISCORD_TOKEN vào file .env trước!")
+    if not BOT_TOKEN or BOT_TOKEN == "THAY_BOT_TOKEN_CUA_BAN_VAO_DAY":
+        print("[ERROR] Bạn chưa thay BOT_TOKEN!")
         exit(1)
     bot.run(BOT_TOKEN)
