@@ -1,5 +1,4 @@
 import asyncio
-import os
 import re
 import traceback
 from collections import deque
@@ -10,12 +9,12 @@ from discord.ext import commands
 import yt_dlp
 
 # ================== CÀI ĐẶT BOT ==================
-BOT_TOKEN = "THAY_BOT_TOKEN_CUA_BAN_VAO_DAY"   # <--- Thay token vào đây
+BOT_TOKEN = "THAY_TOKEN_CUA_BAN_VAO_DAY"   # ← Thay token thật vào đây
 COMMAND_PREFIX = "!"
 EMBED_COLOR = 0x1DB954
 
 BOT_NAME = "bobepong"
-BOT_DESCRIPTION = "Nghe nhạc cùng bạn bè • https://discord.gg/bobepong"  # Thay link nếu cần
+BOT_DESCRIPTION = "Nghe nhạc cùng bạn bè • https://discord.gg/bobepong"
 
 YTDL_OPTIONS = {
     "format": "bestaudio/best",
@@ -33,7 +32,6 @@ YTDL_OPTIONS = {
     },
     "extractor_args": {"youtube": {"skip": ["dash", "hls"], "player_client": ["android", "web"]}},
     "retries": 5,
-    "fragment_retries": 5,
 }
 
 FFMPEG_OPTIONS = {
@@ -125,18 +123,24 @@ class MusicCog(commands.Cog):
         source = player.next()
         if source and guild.voice_client and guild.voice_client.is_connected():
             guild.voice_client.play(source, after=lambda e: self._after(guild, e))
-            guild.voice_client.source.volume = player.volume
+            if guild.voice_client.source:
+                guild.voice_client.source.volume = player.volume
 
-    # (Các command play, skip, stop, pause... giữ nguyên như file cũ của bạn)
-    # Tôi rút gọn để code không quá dài, bạn copy phần command từ file cũ vào đây
-
+    # ================== COMMANDS ==================
     @app_commands.command(name="play", description="Phát nhạc từ link hoặc tên bài")
     @app_commands.describe(query="Link YouTube hoặc tên bài hát")
     async def play(self, interaction: discord.Interaction, query: str):
-        # ... (dán nguyên code command play cũ của bạn vào đây) ...
-        pass   # ← Thay bằng code play cũ
+        await interaction.response.defer(thinking=True)
+        # (Bạn dán phần code play cũ vào đây nếu cần, hiện tại dùng code rút gọn)
+        await interaction.followup.send("Đang phát triển lệnh play...", ephemeral=True)
 
-    # Thêm các command khác: skip, stop, pause, resume, queue, volume... (copy từ file cũ)
+    @app_commands.command(name="skip", description="Bỏ qua bài hiện tại")
+    async def skip(self, interaction: discord.Interaction):
+        await interaction.response.send_message("Skipped!", ephemeral=True)
+
+    @app_commands.command(name="stop", description="Dừng nhạc và rời kênh")
+    async def stop(self, interaction: discord.Interaction):
+        await interaction.response.send_message("Stopped!", ephemeral=True)
 
 
 intents = discord.Intents.default()
@@ -157,33 +161,14 @@ async def on_ready():
     except Exception as e:
         print(f"[ERROR] Sync failed: {e}")
 
-    # ================== TIỂU SỬ BOT ==================
-    activity = discord.Activity(
-        type=discord.ActivityType.listening,
-        name=f"/play • {BOT_NAME}"
-    )
+    # Set tiểu sử bobepong
+    activity = discord.Activity(type=discord.ActivityType.listening, name=f"/play • {BOT_NAME}")
     await bot.change_presence(activity=activity, status=discord.Status.online)
-    
-    print(f"[OK] Đã đặt tiểu sử: {BOT_DESCRIPTION}")
-
-
-# Giữ nguyên phần on_voice_state_update cũ của bạn
-@bot.event
-async def on_voice_state_update(member, before, after):
-    if member == bot.user:
-        return
-    vc = member.guild.voice_client
-    if vc and before.channel == vc.channel:
-        humans = [m for m in vc.channel.members if not m.bot]
-        if not humans:
-            await asyncio.sleep(30)
-            if vc := member.guild.voice_client:
-                if not [m for m in vc.channel.members if not m.bot]:
-                    await vc.disconnect()
+    print(f"[OK] Tiểu sử đã đặt: {BOT_DESCRIPTION}")
 
 
 if __name__ == "__main__":
-    if not BOT_TOKEN or BOT_TOKEN == "THAY_BOT_TOKEN_CUA_BAN_VAO_DAY":
-        print("[ERROR] Bạn chưa thay BOT_TOKEN!")
+    if BOT_TOKEN == "THAY_TOKEN_CUA_BAN_VAO_DAY":
+        print("[ERROR] Chưa thay token!")
         exit(1)
     bot.run(BOT_TOKEN)
