@@ -356,9 +356,12 @@ async def on_ready():
     except Exception as e:
         print(f"[ERROR] Sync failed: {e}")
         traceback.print_exc()
+    
+    # === FIX: Đặt trạng thái ở đây ===
     await bot.change_presence(
         activity=discord.Activity(type=discord.ActivityType.listening, name="/bé bo")
     )
+    print("[OK] Đã set status: Đang nghe /bé bo")
 
 
 @bot.event
