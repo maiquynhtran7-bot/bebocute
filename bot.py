@@ -357,7 +357,7 @@ async def on_ready():
         print(f"[ERROR] Sync failed: {e}")
         traceback.print_exc()
     await bot.change_presence(
-        activity=discord.Activity(type=discord.ActivityType.listening, name="/play")
+        activity=discord.Activity(type=discord.ActivityType.listening, name="/bé bo")
     )
 
 
